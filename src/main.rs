@@ -1,6 +1,7 @@
 mod utils;
 use anyhow::anyhow;
-use rusqlite::{Connection, OptionalExtension};
+use rayon::prelude::*;
+use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::collections::HashMap;
 use utils::decrypt;
 use walkdir::WalkDir;
@@ -84,6 +85,7 @@ fn get_book_info(book: u64, conn: &Connection) -> anyhow::Result<(String, String
 fn main() -> anyhow::Result<()> {
     let keys: HashMap<_, _> = WalkDir::new(KEY_DIR)
         .into_iter()
+        .par_bridge()
         .filter_map(|e| e.ok())
         .filter_map(|e| {
             let name = e.file_name().to_str()?;
@@ -108,9 +110,11 @@ fn main() -> anyhow::Result<()> {
         })
         .collect();
 
-    let conn = Connection::open(DB_DIR)?;
+    //test connection
+    let _ = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
-    for book in books {
+    books.into_par_iter().for_each(|book| {
+        let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
         println!("Extracting book {}:", book);
         match get_book(book, &conn, &keys) {
             Ok(content) => {
@@ -130,6 +134,6 @@ fn main() -> anyhow::Result<()> {
                 println!("Get book {} error:{}", book, e);
             }
         }
-    }
+    });
     Ok(())
 }
