@@ -31,8 +31,8 @@ fn get_book(book:u64,conn:&Connection,keys:&HashMap<u64,String>) -> anyhow::Resu
             let get_chapter = || -> anyhow::Result<String> {
                 let ciphertext = std::fs::read_to_string(format!("{}{}/{}.txt",CPT_DIR,&book,&id))
                     .map_err(|e| anyhow!("Find chapter {} Error:{}",&id,e))?;
-                let key = keys.get(&id).ok_or(anyhow!("Cannot find key of chapter {}",&id))?;
-                Ok(decrypt(ciphertext, &key).ok_or(anyhow!("Decrypt chapter {} fail",&id))?)
+                let key = keys.get(&id).ok_or_else(|| anyhow!("Cannot find key of chapter {}",&id))?;
+                decrypt(ciphertext, key).ok_or_else(|| anyhow!("Decrypt chapter {} fail",&id))
             };
             match get_chapter() {
                 Ok(content) => {
@@ -63,10 +63,10 @@ fn get_book_info(book:u64,conn:&Connection) -> anyhow::Result<(String,String)> {
                 row.get(0)
             }).optional()?;
     }
-    let book_info = book_info.ok_or(anyhow!("Cannot find info about book {}",book))?;
+    let book_info = book_info.ok_or_else(|| anyhow!("Cannot find info about book {}",book))?;
     let json:serde_json::Value = serde_json::from_str(&book_info)?;
-    let name = json["book_name"].as_str().ok_or(anyhow!("Parse json error"))?;
-    let author = json["author_name"].as_str().ok_or(anyhow!("Parse json error"))?;
+    let name = json["book_name"].as_str().ok_or_else(|| anyhow!("Parse json error"))?;
+    let author = json["author_name"].as_str().ok_or_else(|| anyhow!("Parse json error"))?;
     Ok((name.to_string(),author.to_string()))
 }
 
@@ -97,17 +97,16 @@ fn main() -> anyhow::Result<()> {
         println!("Extracting book {}:",book);
         match get_book(book,&conn,&keys) {
             Ok(content) => {
-                let filename;
-                match get_book_info(book, &conn) {
+                let filename =match get_book_info(book, &conn) {
                     Ok((name,author)) => {
-                        filename = format!("《{}》作者：{}.txt",name,author);
+                        format!("《{}》作者：{}.txt",name,author)
                     },
                     Err(_) => {
-                        filename = format!("{}.txt",book);
+                        format!("{}.txt",book)
                     }
-                }
+                };
                 if let Err(e) = std::fs::write(filename,content) {
-                    println!("Write book {} error:{}",book,e.to_string());
+                    println!("Write book {} error:{}",book,e);
                 }
             },
             Err(e) => {
