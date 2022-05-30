@@ -66,7 +66,7 @@ fn get_book_info(book:u64,conn:&Connection) -> anyhow::Result<(String,String)> {
     let book_info = book_info.ok_or(anyhow!("Cannot find info about book {}",book))?;
     let json:serde_json::Value = serde_json::from_str(&book_info)?;
     let name = json["book_name"].as_str().ok_or(anyhow!("Parse json error"))?;
-    let author = json["author_name"].as_str().ok_or(anyhow!("Parse json error!"))?;
+    let author = json["author_name"].as_str().ok_or(anyhow!("Parse json error"))?;
     Ok((name.to_string(),author.to_string()))
 }
 
@@ -94,7 +94,7 @@ fn main() -> anyhow::Result<()> {
     let conn = Connection::open(DB_DIR)?;
 
     for book in books {
-        println!("Getting book {}:",book);
+        println!("Extracting book {}:",book);
         match get_book(book,&conn,&keys) {
             Ok(content) => {
                 let filename;

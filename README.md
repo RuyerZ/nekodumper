@@ -1,4 +1,7 @@
 # Neko Dumper
+
+[下载地址](https://github.com/RujiaZhang/nekodumper/releases/latest/download/nekodumper.exe)
+
 某APP的离线导出工具，用于备份内容。
 
 本项目仅用于备份下架内容及在其他设备上浏览内容，**请勿无授权传播**。
