@@ -37,7 +37,7 @@ pub fn decrypt(mut content: String, key: &str) -> Option<String> {
         .chars()
         .filter(|c| !c.is_ascii_whitespace())
         .collect();
-    let ciphertext = base64::decode(&content).unwrap();
+    let ciphertext = base64::decode(&content).ok()?;
     let key = sha256(key);
     aes_decrypt(&ciphertext, &key)
 }
