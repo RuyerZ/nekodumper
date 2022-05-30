@@ -29,7 +29,7 @@ fn sha256(key: &str) -> Vec<u8> {
     engine.input_str(key);
     let mut ret = [0; 32];
     engine.result(&mut ret);
-    ret.to_vec()
+    Vec::from(ret)
 }
 
 pub fn decrypt(mut content: String, key: &str) -> Option<String> {
