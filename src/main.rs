@@ -1,17 +1,31 @@
 mod utils;
 use anyhow::anyhow;
+use clap::Parser;
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::collections::HashMap;
 use utils::decrypt;
 use walkdir::WalkDir;
 
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    /// Turn debug informations on
+    #[clap(short, long)]
+    debug: bool,
+}
+
 //To hide the keywords
 const DB_DIR: &str = concat!("./databases/novelC", "iwei");
 const CPT_DIR: &str = concat!("./files/novelC", "iwei/reader/booksnew/");
 const KEY_DIR: &str = concat!("./files/Y2", "hlcy8/");
 
-fn get_book(book: u64, conn: &Connection, keys: &HashMap<u64, String>) -> anyhow::Result<String> {
+fn get_book(
+    book: u64,
+    conn: &Connection,
+    keys: &HashMap<u64, String>,
+    debug: bool,
+) -> anyhow::Result<String> {
     let mut stmt = conn.prepare(
         "SELECT division_index,division_name FROM division WHERE book_id=? ORDER BY division_index",
     )?;
@@ -46,7 +60,9 @@ fn get_book(book: u64, conn: &Connection, keys: &HashMap<u64, String>) -> anyhow
                     ret.push_str("\n\n");
                 }
                 Err(e) => {
-                    println!("{}", e);
+                    if debug {
+                        println!("{}", e);
+                    }
                 }
             }
         }
@@ -83,6 +99,7 @@ fn get_book_info(book: u64, conn: &Connection) -> anyhow::Result<(String, String
 }
 
 fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
     let keys: HashMap<_, _> = WalkDir::new(KEY_DIR)
         .into_iter()
         .par_bridge()
@@ -115,8 +132,8 @@ fn main() -> anyhow::Result<()> {
 
     books.into_par_iter().for_each(|book| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        println!("Extracting book {}:", book);
-        match get_book(book, &conn, &keys) {
+        println!("Exporting book {}:", book);
+        match get_book(book, &conn, &keys, cli.debug) {
             Ok(content) => {
                 let filename = match get_book_info(book, &conn) {
                     Ok((name, author)) => {
@@ -127,11 +144,11 @@ fn main() -> anyhow::Result<()> {
                     }
                 };
                 if let Err(e) = std::fs::write(filename, content) {
-                    println!("Write book {} error:{}", book, e);
+                    println!("Write book {} error: {}", book, e);
                 }
             }
             Err(e) => {
-                println!("Get book {} error:{}", book, e);
+                println!("Export book {} error: {}", book, e);
             }
         }
     });
