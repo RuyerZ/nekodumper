@@ -117,6 +117,8 @@ fn main() -> anyhow::Result<()> {
         })
         .collect();
 
+    let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+
     let books: Vec<_> = WalkDir::new(CPT_DIR)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -125,26 +127,29 @@ fn main() -> anyhow::Result<()> {
             let id: u64 = name.parse().ok()?;
             Some(id)
         })
+        .map(|book| match get_book_info(book, &conn) {
+            Ok((name, author)) => (book, Some((name, author))),
+            Err(e) => {
+                if cli.debug {
+                    println!("{}", e);
+                }
+                (book, None)
+            }
+        })
         .collect();
 
-    //test connection
-    let _ = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
-
-    books.into_par_iter().for_each(|book| {
+    books.into_par_iter().for_each(|(book, meta)| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        println!("Exporting book {}:", book);
+        let out_name = match meta {
+            Some((name, author)) => format!("《{}》作者：{}.txt", name, author),
+            None => format!("{}.txt", book),
+        };
         match get_book(book, &conn, &keys, cli.debug) {
             Ok(content) => {
-                let filename = match get_book_info(book, &conn) {
-                    Ok((name, author)) => {
-                        format!("《{}》作者：{}.txt", name, author)
-                    }
-                    Err(_) => {
-                        format!("{}.txt", book)
-                    }
-                };
-                if let Err(e) = std::fs::write(filename, content) {
+                if let Err(e) = std::fs::write(&out_name, content) {
                     println!("Write book {} error: {}", book, e);
+                } else {
+                    println!("Export book {}({}) done.", &out_name, book);
                 }
             }
             Err(e) => {
