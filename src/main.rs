@@ -23,7 +23,7 @@ const KEY_DIR: &str = concat!("./files/Y2", "hlcy8/");
 fn get_book(
     book: u64,
     conn: &Connection,
-    keys: &HashMap<u64, String>,
+    cpts: &HashMap<u64, String>,
     debug: bool,
 ) -> anyhow::Result<String> {
     let mut stmt = conn.prepare(
@@ -45,23 +45,14 @@ fn get_book(
             let id: u64 = id.parse()?;
             ret.push_str(&title);
             ret.push_str("\n\n");
-            let get_chapter = || -> anyhow::Result<String> {
-                let ciphertext =
-                    std::fs::read_to_string(format!("{}{}/{}.txt", CPT_DIR, &book, &id))
-                        .map_err(|e| anyhow!("Find chapter {} Error:{}", &id, e))?;
-                let key = keys
-                    .get(&id)
-                    .ok_or_else(|| anyhow!("Cannot find key of chapter {}", &id))?;
-                decrypt(ciphertext, key).ok_or_else(|| anyhow!("Decrypt chapter {} fail", &id))
-            };
-            match get_chapter() {
-                Ok(content) => {
-                    ret.push_str(&content);
+            match cpts.get(&id) {
+                Some(content) => {
+                    ret.push_str(content);
                     ret.push_str("\n\n");
                 }
-                Err(e) => {
+                None => {
                     if debug {
-                        println!("{}", e);
+                        println!("Chapter {} is invalid", id);
                     }
                 }
             }
@@ -101,6 +92,7 @@ fn get_book_info(book: u64, conn: &Connection) -> anyhow::Result<(String, String
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let keys: HashMap<_, _> = WalkDir::new(KEY_DIR)
+        .min_depth(1)
         .into_iter()
         .par_bridge()
         .filter_map(|e| e.ok())
@@ -110,9 +102,9 @@ fn main() -> anyhow::Result<()> {
             if b64.len() < 9 {
                 return None;
             }
-            b64.resize(9, 0);
+            b64.truncate(9);
             let key: u64 = String::from_utf8(b64).ok()?.parse().ok()?;
-            let value = String::from_utf8(std::fs::read(e.path()).ok()?).ok()?;
+            let value = std::fs::read_to_string(e.path()).ok()?;
             Some((key, value))
         })
         .collect();
@@ -120,13 +112,11 @@ fn main() -> anyhow::Result<()> {
     let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
     let books: Vec<_> = WalkDir::new(CPT_DIR)
+        .min_depth(1)
+        .max_depth(1)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter_map(|e| {
-            let name = e.file_name().to_str()?;
-            let id: u64 = name.parse().ok()?;
-            Some(id)
-        })
+        .filter_map(|e| e.file_name().to_str()?.parse::<u64>().ok())
         .map(|book| match get_book_info(book, &conn) {
             Ok((name, author)) => (book, Some((name, author))),
             Err(e) => {
@@ -138,13 +128,42 @@ fn main() -> anyhow::Result<()> {
         })
         .collect();
 
+    let cpts: HashMap<_, _> = WalkDir::new(CPT_DIR)
+        .min_depth(2)
+        .into_iter()
+        .par_bridge()
+        .filter_map(|e| e.ok())
+        .filter_map(|e| {
+            let id: u64 = e.path().file_stem()?.to_str()?.parse().ok()?;
+            let key = match keys.get(&id) {
+                Some(key) => key,
+                None => {
+                    if cli.debug {
+                        println!("Cannot find key of chapter {}", id);
+                    }
+                    return None;
+                }
+            };
+            let content = std::fs::read_to_string(e.path()).ok()?;
+            match decrypt(content, key) {
+                Some(c) => Some((id, c)),
+                None => {
+                    if cli.debug {
+                        println!("Decrypt chapter {} fail", id);
+                    }
+                    None
+                }
+            }
+        })
+        .collect();
+
     books.into_par_iter().for_each(|(book, meta)| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
         let out_name = match meta {
             Some((name, author)) => format!("《{}》作者：{}.txt", name, author),
             None => format!("{}.txt", book),
         };
-        match get_book(book, &conn, &keys, cli.debug) {
+        match get_book(book, &conn, &cpts, cli.debug) {
             Ok(content) => {
                 if let Err(e) = std::fs::write(&out_name, content) {
                     println!("Write book {} error: {}", book, e);
