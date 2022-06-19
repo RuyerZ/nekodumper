@@ -135,7 +135,7 @@ fn main() -> Result<()> {
         .map(|book| match get_book_info(book, &conn) {
             Ok((name, author)) => (book, Some((name, author))),
             Err(e) => {
-                warn!("Find name and author of book {} fail:{}", book, e);
+                debug!("Find name and author of book {} fail:{}", book, e);
                 (book, None)
             }
         })
@@ -151,7 +151,7 @@ fn main() -> Result<()> {
             let key = match keys.get(&id) {
                 Some(key) => key,
                 None => {
-                    warn!("Cannot find key of chapter {}", id);
+                    debug!("Cannot find key of chapter {}", id);
                     return None;
                 }
             };
