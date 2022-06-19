@@ -1,7 +1,7 @@
 mod utils;
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::collections::HashMap;
@@ -14,6 +14,9 @@ struct Cli {
     /// Turn debug informations on
     #[clap(short, long)]
     debug: bool,
+    /// Specify (part of) book name, or book ID
+    #[clap(short, long)]
+    name: Option<String>,
 }
 
 //To hide the keywords
@@ -126,7 +129,7 @@ fn main() -> Result<()> {
 
     let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
-    let books: Vec<_> = WalkDir::new(CPT_DIR)
+    let books_iter = WalkDir::new(CPT_DIR)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
@@ -138,8 +141,25 @@ fn main() -> Result<()> {
                 debug!("Find name and author of book {} fail:{}", book, e);
                 (book, None)
             }
-        })
-        .collect();
+        });
+
+    let books: Vec<_> = if let Some(name) = cli.name {
+        books_iter
+            .filter(|(id, meta)| {
+                if name == id.to_string() {
+                    return true;
+                }
+                if let Some((name1, _)) = meta.as_ref() {
+                    if name.find(name1.as_str()).is_some() {
+                        return true;
+                    }
+                }
+                false
+            })
+            .collect()
+    } else {
+        books_iter.collect()
+    };
 
     let cpts: HashMap<_, _> = WalkDir::new(CPT_DIR)
         .min_depth(2)
@@ -181,7 +201,7 @@ fn main() -> Result<()> {
                 }
             }
             Err(e) => {
-                warn!("Export book {} error: {}", book, e);
+                error!("Export book {} error: {}", book, e);
             }
         }
     });
