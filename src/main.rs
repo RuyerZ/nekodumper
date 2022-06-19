@@ -1,6 +1,7 @@
 mod utils;
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use clap::Parser;
+use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::collections::HashMap;
@@ -25,7 +26,7 @@ fn get_book(
     conn: &Connection,
     cpts: &HashMap<u64, String>,
     debug: bool,
-) -> anyhow::Result<String> {
+) -> Result<String> {
     let mut stmt = conn.prepare(
         "SELECT division_index,division_name FROM division WHERE book_id=? ORDER BY division_index",
     )?;
@@ -61,7 +62,7 @@ fn get_book(
     Ok(ret)
 }
 
-fn get_book_info(book: u64, conn: &Connection) -> anyhow::Result<(String, String)> {
+fn get_book_info(book: u64, conn: &Connection) -> Result<(String, String)> {
     let mut book_info: Option<String> = conn
         .query_row(
             "SELECT book_info from shelf_book_info where book_id=?",
@@ -89,8 +90,29 @@ fn get_book_info(book: u64, conn: &Connection) -> anyhow::Result<(String, String
     Ok((name.to_string(), author.to_string()))
 }
 
-fn main() -> anyhow::Result<()> {
+fn setup_logger(debug: bool) {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}][{}] {}",
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(if debug {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        })
+        .chain(std::io::stdout())
+        .apply()
+        .unwrap()
+}
+
+fn main() -> Result<()> {
     let cli = Cli::parse();
+    setup_logger(cli.debug);
     let keys: HashMap<_, _> = WalkDir::new(KEY_DIR)
         .min_depth(1)
         .into_iter()
