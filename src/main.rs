@@ -1,7 +1,7 @@
 mod utils;
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::collections::HashMap;
@@ -21,12 +21,7 @@ const DB_DIR: &str = concat!("./databases/novelC", "iwei");
 const CPT_DIR: &str = concat!("./files/novelC", "iwei/reader/booksnew/");
 const KEY_DIR: &str = concat!("./files/Y2", "hlcy8/");
 
-fn get_book(
-    book: u64,
-    conn: &Connection,
-    cpts: &HashMap<u64, String>,
-    debug: bool,
-) -> Result<String> {
+fn get_book(book: u64, conn: &Connection, cpts: &HashMap<u64, String>) -> Result<String> {
     let mut stmt = conn.prepare(
         "SELECT division_index,division_name FROM division WHERE book_id=? ORDER BY division_index",
     )?;
@@ -52,9 +47,7 @@ fn get_book(
                     ret.push_str("\n\n");
                 }
                 None => {
-                    if debug {
-                        println!("Chapter {} is invalid", id);
-                    }
+                    debug!("Chapter {} is invalid", id);
                 }
             }
         }
@@ -142,9 +135,7 @@ fn main() -> Result<()> {
         .map(|book| match get_book_info(book, &conn) {
             Ok((name, author)) => (book, Some((name, author))),
             Err(e) => {
-                if cli.debug {
-                    println!("{}", e);
-                }
+                warn!("Find name and author of book {} fail:{}", book, e);
                 (book, None)
             }
         })
@@ -160,9 +151,7 @@ fn main() -> Result<()> {
             let key = match keys.get(&id) {
                 Some(key) => key,
                 None => {
-                    if cli.debug {
-                        println!("Cannot find key of chapter {}", id);
-                    }
+                    warn!("Cannot find key of chapter {}", id);
                     return None;
                 }
             };
@@ -170,9 +159,7 @@ fn main() -> Result<()> {
             match decrypt(content, key) {
                 Some(c) => Some((id, c)),
                 None => {
-                    if cli.debug {
-                        println!("Decrypt chapter {} fail", id);
-                    }
+                    warn!("Decrypt chapter {} fail", id);
                     None
                 }
             }
@@ -185,16 +172,16 @@ fn main() -> Result<()> {
             Some((name, author)) => format!("《{}》作者：{}.txt", name, author),
             None => format!("{}.txt", book),
         };
-        match get_book(book, &conn, &cpts, cli.debug) {
+        match get_book(book, &conn, &cpts) {
             Ok(content) => {
                 if let Err(e) = std::fs::write(&out_name, content) {
-                    println!("Write book {} error: {}", book, e);
+                    warn!("Write book {} error: {}", book, e);
                 } else {
-                    println!("Export book {}({}) done.", &out_name, book);
+                    info!("Export book {}({}) done.", &out_name, book);
                 }
             }
             Err(e) => {
-                println!("Export book {} error: {}", book, e);
+                warn!("Export book {} error: {}", book, e);
             }
         }
     });
