@@ -58,7 +58,8 @@ fn get_book(book: u64, conn: &Connection, cpts: &HashMap<u64, String>) -> Result
     Ok(ret)
 }
 
-fn get_book_info(book: u64, conn: &Connection) -> Result<(String, String)> {
+/// Book info in db. Returns (Name, Author, Cover URL).
+fn get_book_info(book: u64, conn: &Connection) -> Result<(String, String, String)> {
     let mut book_info: Option<String> = conn
         .query_row(
             "SELECT book_info from shelf_book_info where book_id=?",
@@ -83,7 +84,10 @@ fn get_book_info(book: u64, conn: &Connection) -> Result<(String, String)> {
     let author = json["author_name"]
         .as_str()
         .ok_or_else(|| anyhow!("Parse json error"))?;
-    Ok((name.to_string(), author.to_string()))
+    let cover = json["cover"]
+        .as_str()
+        .ok_or_else(|| anyhow!("Parse json error"))?;
+    Ok((name.to_string(), author.to_string(), cover.to_string()))
 }
 
 fn setup_logger(debug: bool) {
@@ -136,7 +140,7 @@ fn main() -> Result<()> {
         .filter_map(|e| e.ok())
         .filter_map(|e| e.file_name().to_str()?.parse::<u64>().ok())
         .map(|book| match get_book_info(book, &conn) {
-            Ok((name, author)) => (book, Some((name, author))),
+            Ok((name, author, cover)) => (book, Some((name, author, cover))),
             Err(e) => {
                 debug!("Find name and author of book {} fail:{}", book, e);
                 (book, None)
@@ -149,8 +153,8 @@ fn main() -> Result<()> {
                 if name == id.to_string() {
                     return true;
                 }
-                if let Some((name1, _)) = meta.as_ref() {
-                    if name.find(name1.as_str()).is_some() {
+                if let Some((name1, _, _)) = meta.as_ref() {
+                    if name.contains(name1.as_str()) {
                         return true;
                     }
                 }
@@ -188,8 +192,8 @@ fn main() -> Result<()> {
 
     books.into_par_iter().for_each(|(book, meta)| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        let out_name = match meta {
-            Some((name, author)) => format!("《{}》作者：{}.txt", name, author),
+        let out_name = match &meta {
+            Some((name, author, _)) => format!("《{}》作者：{}.txt", name, author),
             None => format!("{}.txt", book),
         };
         match get_book(book, &conn, &cpts) {
