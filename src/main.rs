@@ -1,4 +1,6 @@
 mod book;
+mod client;
+mod epub;
 mod utils;
 use anyhow::Result;
 use book::{get_book, get_book_info};
