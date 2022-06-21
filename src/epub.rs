@@ -2,8 +2,8 @@ use crate::client::httpget;
 use anyhow::{anyhow, Result};
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
 use hyper::{body::Bytes, Uri};
-use once_cell::sync::Lazy;
 use log::warn;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -127,22 +127,26 @@ fn test_build_epub() {
 #[tokio::main]
 async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
     //Let buffer be 2*LIMIT
-    let (tx,mut rx) = tokio::sync::mpsc::channel(32);
+    let (tx, mut rx) = tokio::sync::mpsc::channel(32);
     uris.into_iter().for_each(|url| {
-        let tx=tx.clone();
-        tokio::spawn(async move{
+        let tx = tx.clone();
+        tokio::spawn(async move {
             let path = url.path().to_string();
             let r = httpget(url).await;
-            tx.send((path,r)).await.ok();
+            tx.send((path, r)).await.ok();
         });
     });
     drop(tx);
 
     let mut ret = HashMap::new();
-    while let Some((path,r)) = rx.recv().await {
+    while let Some((path, r)) = rx.recv().await {
         match r {
-            Ok(b) => {ret.insert(path,b);},
-            Err(e) => {warn!("Get Image {} Err: {}",path,e);}
+            Ok(b) => {
+                ret.insert(path, b);
+            }
+            Err(e) => {
+                warn!("Get Image {} Err: {}", path, e);
+            }
         }
     }
     ret
@@ -155,9 +159,9 @@ pub fn get_epub(
     meta: Option<(String, String, String)>,
 ) -> Result<EpubBuilder<ZipLibrary>> {
     let sections = extract_section(book, conn, cpts)?;
-    let (mut builder,mut uris) =
+    let (mut builder, mut uris) =
         build_epub(&sections).map_err(|e| anyhow!("Build EPUB Error in extracting: {:?}", e))?;
-    if let Some((_,_,cover)) = &meta {
+    if let Some((_, _, cover)) = &meta {
         if let Ok(uri) = cover.parse::<Uri>() {
             uris.push(uri);
         }
