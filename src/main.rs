@@ -97,7 +97,7 @@ fn main() -> Result<()> {
                     return true;
                 }
                 if let Some((name1, _, _)) = meta.as_ref() {
-                    if name.contains(name1.as_str()) {
+                    if name1.contains(name.as_str()) {
                         return true;
                     }
                 }
