@@ -77,7 +77,7 @@ fn build_epub(
                             .captures(i)
                             .and_then(|x| x.get(1)?.as_str().parse::<Uri>().ok())
                             .map(|x| {
-                                let path = format!("<img src=\"{}\">", x.path());
+                                let path = format!("<img src=\"{}\">", x.path().trim_start_matches(&['/','\\']));
                                 uris.push(x);
                                 path
                             });
@@ -138,7 +138,7 @@ async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
     uris.into_iter().for_each(|url| {
         let tx = tx.clone();
         tokio::spawn(async move {
-            let path = url.path().to_string();
+            let path = url.path().trim_start_matches(&['/','\\']).to_string();
             let r = httpget(url).await;
             tx.send((path, r)).await.ok();
         });
@@ -176,7 +176,7 @@ pub fn get_epub(
             .metadata("title", name.as_str())
             .map_err(err_wrapper)?;
         url.parse::<Uri>().ok().map(|uri| {
-            let path = uri.path().to_string();
+            let path = uri.path().trim_start_matches(&['/','\\']).to_string();
             uris.push(uri);
             path
         })
