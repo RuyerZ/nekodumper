@@ -2,15 +2,17 @@ mod book;
 mod client;
 mod epub;
 mod utils;
-use anyhow::Result;
-use book::{get_book, get_book_info};
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags};
 use std::collections::HashMap;
-use utils::decrypt;
 use walkdir::WalkDir;
+
+use book::{get_book, get_book_info};
+use epub::get_epub;
+use utils::decrypt;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -21,6 +23,9 @@ struct Cli {
     /// Specify (part of) book name, or book ID
     #[clap(short, long)]
     name: Option<String>,
+    /// Gen EPUB file
+    #[clap(short, long)]
+    epub: bool,
 }
 
 //To hide the keywords
@@ -128,13 +133,13 @@ fn main() -> Result<()> {
         })
         .collect();
 
-    books.into_par_iter().for_each(|(book, meta)| {
+    books.par_iter().for_each(|(book, meta)| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        let out_name = match &meta {
+        let out_name = match meta {
             Some((name, author, _)) => format!("《{}》作者：{}.txt", name, author),
             None => format!("{}.txt", book),
         };
-        match get_book(book, &conn, &cpts) {
+        match get_book(*book, &conn, &cpts) {
             Ok(content) => {
                 if let Err(e) = std::fs::write(&out_name, content) {
                     warn!("Write book {} error: {}", book, e);
@@ -147,5 +152,27 @@ fn main() -> Result<()> {
             }
         }
     });
+
+    if cli.epub {
+        books.iter().for_each(|(book, meta)| {
+            let out_name = match meta {
+                Some((name, _, _)) => format!("{}.epub", name),
+                None => format!("{}.epub", book),
+            };
+            let result = get_epub(*book, &conn, &cpts, meta)
+                .and_then(|mut builder| {
+                    let mut v = Vec::new();
+                    builder
+                        .generate(&mut v)
+                        .map_err(|e| anyhow!("EPUB to stream error: {}", e))?;
+                    std::fs::write(out_name, v)?;
+                    Ok(())
+                })
+                .err();
+            if let Some(e) = result {
+                warn!("{}",e);
+            }
+        });
+    }
     Ok(())
 }
