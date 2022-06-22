@@ -1,43 +1,20 @@
-use crypto::{
-    aes::{cbc_decryptor, KeySize},
-    blockmodes::PkcsPadding,
-    buffer::{BufferResult, ReadBuffer, RefReadBuffer, RefWriteBuffer, WriteBuffer},
-    digest::Digest,
-    sha2::Sha256,
+use openssl::{
+    sha::sha256,
+    symm::{decrypt, Cipher},
 };
 
 fn aes_decrypt(ciphertext: &[u8], key: &[u8]) -> Option<String> {
-    let mut decryptor = cbc_decryptor(KeySize::KeySize256, key, &[0; 16], PkcsPadding);
-    let mut read_buffer = RefReadBuffer::new(ciphertext);
-    let mut buffer = [0; 4096];
-    let mut write_buffer = RefWriteBuffer::new(&mut buffer);
-    let mut plain = Vec::<u8>::new();
-    loop {
-        let flag = decryptor
-            .decrypt(&mut read_buffer, &mut write_buffer, true)
-            .ok()?;
-        plain.extend_from_slice(write_buffer.take_read_buffer().take_remaining());
-        if let BufferResult::BufferUnderflow = flag {
-            break;
-        }
-    }
-    String::from_utf8(plain).ok()
+    let t = Cipher::aes_256_cbc();
+    let v = decrypt(t, key, None, ciphertext).ok()?;
+    String::from_utf8(v).ok()
 }
 
-fn sha256(key: &str) -> [u8;32] {
-    let mut engine = Sha256::new();
-    engine.input_str(key);
-    let mut ret = [0; 32];
-    engine.result(&mut ret);
-    ret
-}
-
-pub fn decrypt(mut content: String, key: &str) -> Option<String> {
+pub fn dec(mut content: String, key: &str) -> Option<String> {
     content = content
         .chars()
         .filter(|c| !c.is_ascii_whitespace())
         .collect();
     let ciphertext = base64::decode(&content).ok()?;
-    let key = sha256(key);
+    let key = sha256(key.as_bytes());
     aes_decrypt(&ciphertext, &key)
 }

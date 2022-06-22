@@ -12,7 +12,7 @@ use walkdir::WalkDir;
 
 use book::{get_book, get_book_info};
 use epub::get_epub;
-use utils::decrypt;
+use utils::dec;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -123,7 +123,7 @@ fn main() -> Result<()> {
                 }
             };
             let content = std::fs::read_to_string(e.path()).ok()?;
-            match decrypt(content, key) {
+            match dec(content, key) {
                 Some(c) => Some((id, c)),
                 None => {
                     warn!("Decrypt chapter {} fail", id);
