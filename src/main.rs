@@ -17,13 +17,13 @@ use utils::decrypt;
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Cli {
-    /// Turn debug informations on
+    /// Show debug information
     #[clap(short, long)]
     debug: bool,
     /// Specify (part of) book name, or book ID
     #[clap(short, long)]
     name: Option<String>,
-    /// Gen EPUB file
+    /// Generate EPUB file
     #[clap(short, long)]
     epub: bool,
 }
@@ -142,7 +142,7 @@ fn main() -> Result<()> {
         match get_book(*book, &conn, &cpts) {
             Ok(content) => {
                 if let Err(e) = std::fs::write(&out_name, content) {
-                    warn!("Write book {} error: {}", book, e);
+                    error!("Write book {} error: {}", book, e);
                 } else {
                     info!("Export book {}({}) done.", &out_name, book);
                 }
@@ -159,18 +159,16 @@ fn main() -> Result<()> {
                 Some((name, _, _)) => format!("{}.epub", name),
                 None => format!("{}.epub", book),
             };
-            let result = get_epub(*book, &conn, &cpts, meta)
-                .and_then(|mut builder| {
-                    let mut v = Vec::new();
-                    builder
-                        .generate(&mut v)
-                        .map_err(|e| anyhow!("EPUB to stream error: {}", e))?;
-                    std::fs::write(out_name, v)?;
-                    Ok(())
-                })
-                .err();
-            if let Some(e) = result {
-                warn!("{}", e);
+            match get_epub(*book, &conn, &cpts, meta).and_then(|mut builder| {
+                let mut v = Vec::new();
+                builder
+                    .generate(&mut v)
+                    .map_err(|e| anyhow!("EPUB to stream error: {}", e))?;
+                std::fs::write(&out_name, v)?;
+                Ok(())
+            }) {
+                Ok(_) => info!("Export epub {}({}) done.", *book, &out_name),
+                Err(e) => error!("Export epub {}({}) error: {}", *book, &out_name, e),
             }
         });
     }

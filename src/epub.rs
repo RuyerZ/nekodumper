@@ -16,11 +16,16 @@ enum Section {
     Cpt { title: String, content: String },
 }
 
+struct Sec {
+    filename: String,
+    inner: Section,
+}
+
 fn extract_section(
     book: u64,
     conn: &Connection,
     cpts: &HashMap<u64, String>,
-) -> Result<Vec<Section>> {
+) -> Result<Vec<Sec>> {
     //Copied from book.rs. Modify the code below carefully, or consider split them into function.
     let mut stmt = conn.prepare(
         "SELECT division_index,division_name FROM division WHERE book_id=? ORDER BY division_index",
@@ -30,19 +35,26 @@ fn extract_section(
     while let Some(row) = rows.next()? {
         divs.push((row.get(0)?, row.get(1)?));
     }
-    let mut stmt = conn.prepare("SELECT chapter_id,chapter_title FROM catalog1 WHERE book_id=? AND division_index=? ORDER BY chapter_index")?;
+    //modified: add chapter_index
+    let mut stmt = conn.prepare("SELECT chapter_id,chapter_title,chapter_index FROM catalog1 WHERE book_id=? AND division_index=? ORDER BY chapter_index")?;
     //----------
 
     let mut ret = Vec::new();
     for (div, div_name) in divs {
-        ret.push(Section::Div(div_name));
+        ret.push(Sec {
+            filename: format!("{}_front.xhtml", div),
+            inner: Section::Div(div_name),
+        });
         let mut rows = stmt.query([book, div])?;
         while let Some(row) = rows.next()? {
-            let (id, title): (String, String) = (row.get(0)?, row.get(1)?);
+            let (id, title, idx): (String, String, u64) = (row.get(0)?, row.get(1)?, row.get(2)?);
             let id: u64 = id.parse()?;
-            ret.push(Section::Cpt {
-                title,
-                content: cpts.get(&id).cloned().unwrap_or_default(),
+            ret.push(Sec {
+                filename: format!("{}_{}.xhtml", div, idx),
+                inner: Section::Cpt {
+                    title,
+                    content: cpts.get(&id).cloned().unwrap_or_default(),
+                },
             });
         }
     }
@@ -50,16 +62,14 @@ fn extract_section(
 }
 
 fn build_epub(
-    sections: &Vec<Section>,
+    sections: &Vec<Sec>,
 ) -> Result<(EpubBuilder<ZipLibrary>, Vec<Uri>), epub_builder::Error> {
     let mut builder = EpubBuilder::new(ZipLibrary::new()?)?;
     let mut uris = Vec::new();
-    let mut id: usize = 0;
     for sec in sections {
-        id += 1;
-        let name = id.to_string() + ".xhtml";
+        let Sec {filename:name,inner} = sec;
         let mut ret;
-        let content = match sec {
+        let content = match inner {
             Section::Div(title) => {
                 ret = format!(include_str!("./assets/div.xhtml"), title = title);
                 EpubContent::new(name, ret.as_bytes())
@@ -124,18 +134,6 @@ fn build_epub(
         builder.add_content(content)?;
     }
     Ok((builder, uris))
-}
-
-#[test]
-fn test_build_epub() {
-    let dummy_div = Section::Div(String::from("Div Title"));
-    let dummy_cpt = Section::Cpt {
-        title: "Cpt Title".to_string(),
-        content: "第一段\n123\n  <img src=\"https://example.com/img/1.jpg\" alt='hello'>\n  ORZ"
-            .to_string(),
-    };
-    let v = vec![dummy_div, dummy_cpt];
-    dbg!(build_epub(&v).unwrap());
 }
 
 fn mime_type(path: &str) -> &'static str {

@@ -29,7 +29,7 @@ pub fn get_book(book: u64, conn: &Connection, cpts: &HashMap<u64, String>) -> Re
                     ret.push_str("\n\n");
                 }
                 None => {
-                    debug!("Chapter {} is invalid", id);
+                    debug!("Chapter {} is not found or invalid", id);
                 }
             }
         }
