@@ -170,7 +170,7 @@ fn main() -> Result<()> {
                 })
                 .err();
             if let Some(e) = result {
-                warn!("{}",e);
+                warn!("{}", e);
             }
         });
     }

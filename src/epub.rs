@@ -75,7 +75,7 @@ fn build_epub(
                             Lazy::new(|| Regex::new("alt\\s*=\\s*[\"'](.*?)[\"']").unwrap());
                         let src = RE_SRC
                             .captures(i)
-                            .and_then(|x| Some(x.get(1)?.as_str().parse::<Uri>().ok()?))
+                            .and_then(|x| x.get(1)?.as_str().parse::<Uri>().ok())
                             .map(|x| {
                                 let path = format!("<img src=\"{}\">", x.path());
                                 uris.push(x);
