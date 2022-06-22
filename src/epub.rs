@@ -21,11 +21,7 @@ struct Sec {
     inner: Section,
 }
 
-fn extract_section(
-    book: u64,
-    conn: &Connection,
-    cpts: &HashMap<u64, String>,
-) -> Result<Vec<Sec>> {
+fn extract_section(book: u64, conn: &Connection, cpts: &HashMap<u64, String>) -> Result<Vec<Sec>> {
     //Copied from book.rs. Modify the code below carefully, or consider split them into function.
     let mut stmt = conn.prepare(
         "SELECT division_index,division_name FROM division WHERE book_id=? ORDER BY division_index",
@@ -67,7 +63,10 @@ fn build_epub(
     let mut builder = EpubBuilder::new(ZipLibrary::new()?)?;
     let mut uris = Vec::new();
     for sec in sections {
-        let Sec {filename:name,inner} = sec;
+        let Sec {
+            filename: name,
+            inner,
+        } = sec;
         let mut ret;
         let content = match inner {
             Section::Div(title) => {
