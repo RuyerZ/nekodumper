@@ -1,7 +1,10 @@
 use crate::client::httpget;
 use anyhow::{anyhow, Result};
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
-use hyper::{body::Bytes, Uri};
+use hyper::{
+    body::{Buf, Bytes},
+    Uri,
+};
 use log::warn;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -48,7 +51,7 @@ fn extract_section(
 
 fn build_epub(
     sections: &Vec<Section>,
-) -> Result<(EpubBuilder<ZipLibrary>, Vec<Uri>), Box<dyn std::error::Error>> {
+) -> Result<(EpubBuilder<ZipLibrary>, Vec<Uri>), epub_builder::Error> {
     let mut builder = EpubBuilder::new(ZipLibrary::new()?)?;
     let mut uris = Vec::new();
     let mut id: usize = 0;
@@ -124,6 +127,10 @@ fn test_build_epub() {
     dbg!(build_epub(&v).unwrap());
 }
 
+fn mime_type(path: &str) -> &'static str {
+    mime_guess::from_path(path).first_raw().unwrap_or("*/*")
+}
+
 #[tokio::main]
 async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
     //Let buffer be 2*LIMIT
@@ -156,15 +163,38 @@ pub fn get_epub(
     book: u64,
     conn: &Connection,
     cpts: &HashMap<u64, String>,
-    meta: Option<(String, String, String)>,
+    meta: &Option<(String, String, String)>,
 ) -> Result<EpubBuilder<ZipLibrary>> {
     let sections = extract_section(book, conn, cpts)?;
-    let (mut builder, mut uris) =
-        build_epub(&sections).map_err(|e| anyhow!("Build EPUB Error in extracting: {:?}", e))?;
-    if let Some((_, _, cover)) = &meta {
-        if let Ok(uri) = cover.parse::<Uri>() {
+    let err_wrapper = |e| anyhow!("Build EPUB Error: {}", e);
+    let (mut builder, mut uris) = build_epub(&sections).map_err(err_wrapper)?;
+    let cover = if let Some((name, author, url)) = meta {
+        builder
+            .metadata("author", author.as_str())
+            .map_err(err_wrapper)?;
+        builder
+            .metadata("title", name.as_str())
+            .map_err(err_wrapper)?;
+        url.parse::<Uri>().ok().map(|uri| {
+            let path = uri.path().to_string();
             uris.push(uri);
+            path
+        })
+    } else {
+        None
+    };
+    let mut imgs: HashMap<String, Bytes> = get_imgs(uris);
+    if let Some(path) = cover {
+        if let Some(b) = imgs.remove(&path) {
+            builder
+                .add_cover_image(&path, b.reader(), mime_type(&path))
+                .map_err(err_wrapper)?;
         }
     }
-    todo!();
+    for (path, content) in imgs {
+        builder
+            .add_resource(&path, content.reader(), mime_type(&path))
+            .map_err(err_wrapper)?;
+    }
+    Ok(builder)
 }
