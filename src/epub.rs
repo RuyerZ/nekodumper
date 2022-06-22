@@ -58,14 +58,18 @@ fn build_epub(
     for sec in sections {
         id += 1;
         let name = id.to_string() + ".xhtml";
-        let mut ret = String::new();
+        let mut ret;
         let content = match sec {
-            Section::Div(title) => EpubContent::new(name, title.as_bytes())
-                .title(title)
-                .reftype(ReferenceType::TitlePage),
+            Section::Div(title) => {
+                ret = format!(include_str!("./assets/div.xhtml"), title = title);
+                EpubContent::new(name, ret.as_bytes())
+                    .title(title)
+                    .reftype(ReferenceType::TitlePage)
+            }
 
             // Turn content into HTML. Code below is like a sh*t.
             Section::Cpt { title, content } => {
+                ret = String::new();
                 for i in content.lines() {
                     static RE_IMG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*<img").unwrap());
                     let html = if RE_IMG.is_match(i) {
@@ -77,7 +81,10 @@ fn build_epub(
                             .captures(i)
                             .and_then(|x| x.get(1)?.as_str().parse::<Uri>().ok())
                             .map(|x| {
-                                let path = format!("<img src=\"{}\">", x.path().trim_start_matches(&['/','\\']));
+                                let path = format!(
+                                    "<img src=\"{}\"/>",
+                                    x.path().trim_start_matches(&['/', '\\'])
+                                );
                                 uris.push(x);
                                 path
                             });
@@ -101,7 +108,11 @@ fn build_epub(
                     };
                     ret.push_str(&html);
                 }
-
+                ret = format!(
+                    include_str!("./assets/cpt.xhtml"),
+                    title = title,
+                    content = ret
+                );
                 #[cfg(test)]
                 dbg!(&ret);
 
@@ -138,7 +149,7 @@ async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
     uris.into_iter().for_each(|url| {
         let tx = tx.clone();
         tokio::spawn(async move {
-            let path = url.path().trim_start_matches(&['/','\\']).to_string();
+            let path = url.path().trim_start_matches(&['/', '\\']).to_string();
             let r = httpget(url).await;
             tx.send((path, r)).await.ok();
         });
@@ -176,7 +187,7 @@ pub fn get_epub(
             .metadata("title", name.as_str())
             .map_err(err_wrapper)?;
         url.parse::<Uri>().ok().map(|uri| {
-            let path = uri.path().trim_start_matches(&['/','\\']).to_string();
+            let path = uri.path().trim_start_matches(&['/', '\\']).to_string();
             uris.push(uri);
             path
         })
