@@ -24,12 +24,12 @@ fn aes_decrypt(ciphertext: &[u8], key: &[u8]) -> Option<String> {
     String::from_utf8(plain).ok()
 }
 
-fn sha256(key: &str) -> Vec<u8> {
+fn sha256(key: &str) -> [u8;32] {
     let mut engine = Sha256::new();
     engine.input_str(key);
     let mut ret = [0; 32];
     engine.result(&mut ret);
-    Vec::from(ret)
+    ret
 }
 
 pub fn decrypt(mut content: String, key: &str) -> Option<String> {
