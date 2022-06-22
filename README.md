@@ -5,7 +5,7 @@
 
 [下载地址](https://github.com/RujiaZhang/nekodumper/releases/latest/download/nekodumper.exe)
 
-某APP的离线导出工具，用于备份内容。
+某APP的缓存导出工具，用于备份内容。
 
 本项目仅用于备份下架内容及在其他设备上浏览内容，**请勿无授权传播**。
 
@@ -28,6 +28,11 @@
 
 ## 注意事项
 如果切换多个账号，请在备份发送到电脑之前在APP中加载所有要导出的内容的章节目录。
+
+## 命令行选项
+- `-n (--name) <NAME>` : 用于过滤项目，`<NAME>`可以为书号ID，部分书名。
+- `-e (--epub)` : 实验性功能，生成EPUB文件。需要用到网络爬虫爬取图片，爬虫不发送任何能识别用户的数据。
+- `-d (--debug)` : 输出调试信息。
 
 ## 编译
 1. 参考Rust圣经的[寻找牛刀，以便小试](https://course.rs/first-try/intro.html)章节，安装rustup与cargo。
