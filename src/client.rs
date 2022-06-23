@@ -61,9 +61,10 @@ pub async fn httpget_unlimited(uri: Uri) -> Result<Bytes> {
     }
 }
 
-static LIMIT: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(16);
+pub const LIMIT: usize = 16;
+static PERMITS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(LIMIT);
 
 pub async fn httpget(url: Uri) -> Result<Bytes> {
-    let _permit = LIMIT.acquire().await.unwrap();
+    let _permit = PERMITS.acquire().await.unwrap();
     httpget_unlimited(url).await
 }

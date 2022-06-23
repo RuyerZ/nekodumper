@@ -1,4 +1,4 @@
-use crate::client::httpget;
+use crate::client::{httpget, LIMIT};
 use anyhow::{anyhow, Result};
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
 use hyper::{
@@ -141,8 +141,8 @@ fn mime_type(path: &str) -> &'static str {
 
 #[tokio::main]
 async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
-    //Let buffer be 2*LIMIT
-    let (tx, mut rx) = tokio::sync::mpsc::channel(32);
+    let (tx, mut rx) = tokio::sync::mpsc::channel(LIMIT * 2);
+    let cap = uris.len();
     uris.into_iter().for_each(|url| {
         let tx = tx.clone();
         tokio::spawn(async move {
@@ -153,7 +153,7 @@ async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
     });
     drop(tx);
 
-    let mut ret = HashMap::new();
+    let mut ret = HashMap::with_capacity(cap);
     while let Some((path, r)) = rx.recv().await {
         match r {
             Ok(b) => {
