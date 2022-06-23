@@ -18,13 +18,8 @@ fn sha256(input: &str) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-pub fn dec<T: AsRef<[u8]>>(content: T, key: &str) -> Option<String> {
-    let content: Vec<_> = content
-        .as_ref()
-        .iter()
-        .filter(|x| !x.is_ascii_whitespace())
-        .copied()
-        .collect();
+pub fn dec(mut content: Vec<u8>, key: &str) -> Option<String> {
+    content.retain(|x| !x.is_ascii_whitespace());
     let ciphertext = base64::decode(&content).ok()?;
     let key = sha256(key);
     aes_decrypt(ciphertext, &key)

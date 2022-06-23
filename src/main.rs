@@ -122,7 +122,7 @@ fn main() -> Result<()> {
                     return None;
                 }
             };
-            let content = std::fs::read_to_string(e.path()).ok()?;
+            let content = std::fs::read(e.path()).ok()?;
             match dec(content, key) {
                 Some(c) => Some((id, c)),
                 None => {
