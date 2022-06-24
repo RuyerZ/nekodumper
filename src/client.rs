@@ -30,6 +30,7 @@ fn request(uri: Uri) -> Result<Request<Body>> {
         .header("User-Agent", USER_AGENT)
         .header("Accept-Encoding", "gzip, deflate")
         .header("Host", host)
+        .header("Connection", "keep-alive")
         .body(Body::empty())?)
 }
 
