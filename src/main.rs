@@ -4,6 +4,7 @@ mod epub;
 mod utils;
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use indicatif::ParallelProgressIterator;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags};
@@ -48,7 +49,7 @@ fn setup_logger(debug: bool) {
         } else {
             log::LevelFilter::Info
         })
-        .chain(std::io::stdout())
+        .chain(std::io::stderr())
         .apply()
         .unwrap()
 }
@@ -56,11 +57,16 @@ fn setup_logger(debug: bool) {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     setup_logger(cli.debug);
-    let keys: HashMap<_, _> = WalkDir::new(KEY_DIR)
+
+    info!("Getting keys of chapters...");
+    let keyfiles: Vec<_> = WalkDir::new(KEY_DIR)
         .min_depth(1)
         .into_iter()
-        .par_bridge()
         .filter_map(|e| e.ok())
+        .collect();
+    let keys: HashMap<_, _> = keyfiles
+        .into_par_iter()
+        .progress()
         .filter_map(|e| {
             let name = e.file_name().to_str()?;
             let mut b64 = base64::decode(name).ok()?;
@@ -74,6 +80,7 @@ fn main() -> Result<()> {
         })
         .collect();
 
+    info!("Connecting to database to get book info...");
     let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
 
     let books_iter = WalkDir::new(CPT_DIR)
@@ -108,11 +115,15 @@ fn main() -> Result<()> {
         books_iter.collect()
     };
 
-    let cpts: HashMap<_, _> = WalkDir::new(CPT_DIR)
+    info!("Decrypting all chapters...");
+    let cptfiles: Vec<_> = WalkDir::new(CPT_DIR)
         .min_depth(2)
         .into_iter()
-        .par_bridge()
         .filter_map(|e| e.ok())
+        .collect();
+    let cpts: HashMap<_, _> = cptfiles
+        .into_par_iter()
+        .progress()
         .filter_map(|e| {
             let id: u64 = e.path().file_stem()?.to_str()?.parse().ok()?;
             let key = match keys.get(&id) {
@@ -133,6 +144,7 @@ fn main() -> Result<()> {
         })
         .collect();
 
+    info!("Exporting txts...");
     books.par_iter().for_each(|(book, meta)| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
         let out_name = match meta {
@@ -159,6 +171,7 @@ fn main() -> Result<()> {
                 Some((name, _, _)) => format!("{}.epub", name),
                 None => format!("{}.epub", book),
             };
+            info!("Generating {} and getting images...", &out_name);
             match get_epub(*book, &conn, &cpts, meta).and_then(|mut builder| {
                 let mut v = Vec::new();
                 builder

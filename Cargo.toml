@@ -24,6 +24,7 @@ serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0"
 rayon = "1.5.3"
 clap = { version = "3", features = ["derive"] }
+indicatif = {version = "0.16", features = ["rayon"]}
 tokio = { version = "1", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }
 hyper-tls = "0.5"

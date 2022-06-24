@@ -152,9 +152,10 @@ async fn get_imgs(uris: Vec<Uri>) -> HashMap<String, Bytes> {
         });
     });
     drop(tx);
-
+    let pb = indicatif::ProgressBar::new(cap.try_into().unwrap());
     let mut ret = HashMap::with_capacity(cap);
     while let Some((path, r)) = rx.recv().await {
+        pb.inc(1);
         match r {
             Ok(b) => {
                 ret.insert(path, b);
