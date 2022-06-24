@@ -36,14 +36,7 @@ const KEY_DIR: &str = concat!("./files/Y2", "hlcy8/");
 
 fn setup_logger(debug: bool) {
     fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{}][{}] {}",
-                record.target(),
-                record.level(),
-                message
-            ))
-        })
+        .format(|out, message, record| out.finish(format_args!("[{}] {}", record.level(), message)))
         .level(if debug {
             log::LevelFilter::Debug
         } else {
