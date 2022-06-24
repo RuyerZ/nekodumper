@@ -1,6 +1,6 @@
 [package]
 name = "nekodumper"
-version = "0.2.1"
+version = "0.2.2"
 description = "Cache export tool for some APP"
 edition = "2021"
 
@@ -24,9 +24,9 @@ serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0"
 rayon = "1.5.3"
 clap = { version = "3", features = ["derive"] }
-indicatif = {version = "0.16", features = ["rayon"]}
+indicatif = { version = "0.16", features = ["rayon"] }
 tokio = { version = "1", features = ["full"] }
-hyper = { version = "0.14", features = ["full"] }
+hyper = { version = "0.14", features = ["http1", "http2", "client"] }
 hyper-tls = "0.5"
 flate2 = "1"
 epub-builder = "0.5"
