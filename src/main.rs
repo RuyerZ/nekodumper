@@ -164,7 +164,7 @@ fn main() -> Result<()> {
                 Some((name, _, _)) => format!("{}.epub", name),
                 None => format!("{}.epub", book),
             };
-            info!("Generating {}({}) and getting images...", *book, &out_name);
+            info!("Generating {}({}) and getting images...", &out_name, *book);
             match get_epub(*book, &conn, &cpts, meta).and_then(|mut builder| {
                 let mut v = Vec::new();
                 builder
@@ -173,8 +173,8 @@ fn main() -> Result<()> {
                 std::fs::write(&out_name, v)?;
                 Ok(())
             }) {
-                Ok(_) => info!("Export epub {}({}) done.", *book, &out_name),
-                Err(e) => error!("Export epub {}({}) error: {}", *book, &out_name, e),
+                Ok(_) => info!("Export epub {}({}) done.", &out_name, *book),
+                Err(e) => error!("Export epub {}({}) error: {}", &out_name, *book, e),
             }
         });
     }
