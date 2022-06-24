@@ -25,12 +25,12 @@ fn request(uri: Uri) -> Result<Request<Body>> {
         .host()
         .ok_or_else(|| anyhow!("Not a valid URL:{}", uri))?;
     Ok(Request::builder()
-        .method("GET")
-        .uri(&uri)
         .header("User-Agent", USER_AGENT)
         .header("Accept-Encoding", "gzip, deflate")
         .header("Host", host)
         .header("Connection", "keep-alive")
+        .method("GET")
+        .uri(uri)
         .body(Body::empty())?)
 }
 
