@@ -171,7 +171,7 @@ fn main() -> Result<()> {
                 Some((name, _, _)) => format!("{}.epub", name),
                 None => format!("{}.epub", book),
             };
-            info!("Generating {} and getting images...", &out_name);
+            info!("Generating {}({}) and getting images...", *book, &out_name);
             match get_epub(*book, &conn, &cpts, meta).and_then(|mut builder| {
                 let mut v = Vec::new();
                 builder
