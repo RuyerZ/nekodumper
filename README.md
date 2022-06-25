@@ -33,6 +33,7 @@
 - `-n (--name) <NAME>` : 仅提取ID为`<NAME>`或书名包含`<NAME>`的书籍。
 - `-e (--epub)` : 实验性功能，生成EPUB文件。需要用到网络爬虫爬取图片，爬虫不发送任何能识别用户的数据。
 - `-d (--debug)` : 输出调试信息。
+- `-r` : 使用Windows风格换行（\r\n），用于应对Windows上部分老旧软件无法正常处理\n换行的问题。
 
 ## 编译
 1. 参考Rust圣经的[寻找牛刀，以便小试](https://course.rs/first-try/intro.html)章节，安装rustup与cargo。
