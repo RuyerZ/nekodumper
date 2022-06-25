@@ -27,6 +27,9 @@ struct Cli {
     /// Generate EPUB file
     #[clap(short, long)]
     epub: bool,
+    /// Windows style newline (\r\n), for compatibility issues with Windows 7
+    #[clap(short)]
+    r: bool,
 }
 
 //To hide the keywords
@@ -145,7 +148,11 @@ fn main() -> Result<()> {
             None => format!("{}.txt", book),
         };
         match get_book(*book, &conn, &cpts) {
-            Ok(content) => {
+            Ok(mut content) => {
+                if cli.r {
+                    content.retain(|x| x != '\r');
+                    content = content.replace('\n', "\r\n");
+                }
                 if let Err(e) = std::fs::write(&out_name, content) {
                     error!("Write book {} error: {}", book, e);
                 } else {
