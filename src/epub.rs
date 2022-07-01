@@ -70,7 +70,7 @@ fn build_epub(
         let mut ret;
         let content = match inner {
             Section::Div(title) => {
-                ret = format!(include_str!("./assets/div.xhtml"), title = title);
+                ret = format!(include_str!("../assets/div.xhtml"), title = title);
                 EpubContent::new(name, ret.as_bytes())
                     .title(title)
                     .reftype(ReferenceType::TitlePage)
@@ -118,7 +118,7 @@ fn build_epub(
                     ret.push_str(&html);
                 }
                 ret = format!(
-                    include_str!("./assets/cpt.xhtml"),
+                    include_str!("../assets/cpt.xhtml"),
                     title = title,
                     content = ret
                 );
