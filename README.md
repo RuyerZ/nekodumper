@@ -3,7 +3,7 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/RujiaZhang/nekodumper/total)
 ![GitHub](https://img.shields.io/github/license/RujiaZhang/nekodumper)
 
-[下载地址](https://github.com/RujiaZhang/nekodumper/releases/latest/download/nekodumper.exe)
+[下载地址](https://github.com/RujiaZhang/nekodumper/releases/latest/)
 
 某APP的缓存导出工具，用于备份内容。
 
@@ -40,6 +40,3 @@
 1. 参考Rust圣经的[寻找牛刀，以便小试](https://course.rs/first-try/intro.html)章节，安装rustup与cargo。
 
 2. 将代码下载或`git clone`到本地，命令行执行`cargo build`编译。
-
-## 兼容性
-目前仅提供Windows 7+，64位的exe分发。如果启动时显示缺失dll，请安装[VC运行时](https://aka.ms/vs/17/release/vc_redist.x64.exe)。需要其他版本请提issue或自行编译。
