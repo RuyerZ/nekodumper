@@ -1,9 +1,9 @@
 # Neko Dumper
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/RujiaZhang/nekodumper)
-![GitHub all releases](https://img.shields.io/github/downloads/RujiaZhang/nekodumper/total)
-![GitHub](https://img.shields.io/github/license/RujiaZhang/nekodumper)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/RuyerZ/nekodumper)
+![GitHub all releases](https://img.shields.io/github/downloads/RuyerZ/nekodumper/total)
+![GitHub](https://img.shields.io/github/license/RuyerZ/nekodumper)
 
-[下载地址](https://github.com/RujiaZhang/nekodumper/releases/latest/)
+[下载地址](https://github.com/RuyerZ/nekodumper/releases/latest/)
 
 某APP的缓存导出工具，用于备份内容。
 
