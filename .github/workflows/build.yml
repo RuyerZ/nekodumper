@@ -12,8 +12,8 @@ jobs:
     runs-on: windows-latest
   
     steps:
-      - uses: actions/checkout@latest
-      - uses: actions/cache@latest
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -36,7 +36,7 @@ jobs:
           cp ../target/release/*.exe ./
       
       - name: Upload artifact
-        uses: actions/upload-artifact@latest
+        uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with: 
           name: ${{ env.RELEASE_NAME }}-windows
@@ -50,7 +50,7 @@ jobs:
           7z a $RELEASE_NAME-windows.7z *
       
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: archive/${{ env.RELEASE_NAME }}-windows.7z
@@ -59,8 +59,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@latest
-      - uses: actions/cache@latest
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -91,7 +91,7 @@ jobs:
           cp $BINARIES ../../../archive/
       
       - name: Upload artifact
-        uses: actions/upload-artifact@latest
+        uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with: 
           name: ${{ env.RELEASE_NAME }}-linux
@@ -105,7 +105,7 @@ jobs:
           tar -czf $RELEASE_NAME-linux.tar.gz *
       
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: archive/${{ env.RELEASE_NAME }}-linux.tar.gz
@@ -114,8 +114,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@latest
-      - uses: actions/cache@latest
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -139,7 +139,7 @@ jobs:
           cp $BINARIES ../../archive/
       
       - name: Upload artifact
-        uses: actions/upload-artifact@latest
+        uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with: 
           name: ${{ env.RELEASE_NAME }}-macos
@@ -153,7 +153,7 @@ jobs:
           tar -czf $RELEASE_NAME-macos.tar.gz *
       
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: archive/${{ env.RELEASE_NAME }}-macos.tar.gz
