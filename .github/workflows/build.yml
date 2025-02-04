@@ -9,11 +9,11 @@ env:
 
 jobs:
   Build-Windows-x64:
-    runs-on: windows-2019
+    runs-on: windows-latest
   
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v3
+      - uses: actions/checkout@latest
+      - uses: actions/cache@latest
         with:
           path: |
             ~/.cargo/bin/
@@ -36,7 +36,7 @@ jobs:
           cp ../target/release/*.exe ./
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@latest
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with: 
           name: ${{ env.RELEASE_NAME }}-windows
@@ -59,8 +59,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v3
+      - uses: actions/checkout@latest
+      - uses: actions/cache@latest
         with:
           path: |
             ~/.cargo/bin/
@@ -91,7 +91,7 @@ jobs:
           cp $BINARIES ../../../archive/
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@latest
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with: 
           name: ${{ env.RELEASE_NAME }}-linux
@@ -114,8 +114,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v3
+      - uses: actions/checkout@latest
+      - uses: actions/cache@latest
         with:
           path: |
             ~/.cargo/bin/
@@ -139,7 +139,7 @@ jobs:
           cp $BINARIES ../../archive/
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@latest
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with: 
           name: ${{ env.RELEASE_NAME }}-macos
