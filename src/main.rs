@@ -143,8 +143,26 @@ fn main() -> Result<()> {
     info!("Exporting txts...");
     books.par_iter().for_each(|(book, meta)| {
         let conn = Connection::open_with_flags(DB_DIR, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let replace_func = |c| { // illegal chars in Windows
+            match c {
+                '\\' => '＼',
+                '/'  => '／',
+                ':'  => '：',
+                '*'  => '＊',
+                '?'  => '？',
+                '"'  => '＂',
+                '<'  => '＜',
+                '>'  => '＞',
+                '|'  => '｜',
+                _    => c,
+            }
+        };
         let out_name = match meta {
-            Some((name, author, _)) => format!("《{}》作者：{}.txt", name, author),
+            Some((name, author, _)) => {
+                let name: String = name.chars().map(replace_func).collect();
+                let author: String = author.chars().map(replace_func).collect();
+                format!("《{}》作者：{}.txt", name, author)
+            },
             None => format!("{}.txt", book),
         };
         match get_book(*book, &conn, &cpts) {
